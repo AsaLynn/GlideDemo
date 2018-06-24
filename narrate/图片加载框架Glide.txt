@@ -1,0 +1,387 @@
+图片加载框架Glide4.2的使用
+
+1,Glide简介
+	Glide是Google推荐的一套快速高效的图片加载框架,作者是bumptech,功能强大且使用方便.支持图片、Gif、原生视频的加载。使用简单，可扩展性强，性能优异，Google推荐使用。目的是实现平滑的图片列表滑动效果.
+	Glide,滑行，滑翔,使滑行; 使滑动;
+	
+2,Glide特点
+	2.1链式调用,支持GIF的加载与解码
+	2.2对象池,原理的核心是为bitmap维护一个对象池,对象池的主要目的是通过减少大对象内存的分配以重用来提高性能
+	2.3生命周期绑定,图片的加载任务会与activity或者Fragment的生命周期绑定,当界面执行onStop的使用自动暂定,而当执行onStart的时候又会自动重新开启,节省电量同时Glide会对网络状态做监听,当网络状态发生改变时,会重启失败的任务,以减少任务因网络连接问题而失败的概率
+	2.4预览图的使用,加载视频时候,优先加载预览图,提高体验
+	2.5AbsListView内图片的预加载
+	2.6封装内存缓存,封装磁盘缓存DiskLruCache
+
+3,使用前的配置
+	module\build.gradle文件配置添加依赖:
+	dependencies{
+		compile 'com.github.bumptech.glide:glide:4.2.0'
+		//开源图片转换库引用.
+		
+	}
+	AndroidManifest添加权限:
+	<uses-permission android:name="android.permission.INTERNET"/>
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+	
+4,Glide中关键类方法的使用介绍
+	
+	4.1,Glide方法
+		清除磁盘缓存,应该在子线程中执行.
+		clearDiskCache() 
+
+		清空内存
+		clearMemory()
+
+		获取默认缓存的目录,包名/cache/image_manager_disk_cache
+		static File getPhotoCacheDir(Context context)
+
+		获取指定指定缓存的目录,包名/cache/cacheName(指定文件夹)
+		static File getPhotoCacheDir(Context context, String cacheName)
+
+		获取Glide实例.
+		static Glide get(Context context)
+
+		ArrayPool池阵列的不同类型的接口,获取该实例
+		ArrayPool getArrayPool()
+
+		获取BitmapPool对象池实例,复用大对象.
+		BitmapPoolBitmapPool getBitmapPool()
+
+		获取关联的context
+		Context getContext()
+
+		获取Registry对象,管理组件注册以扩展或替换滑动的默认加载、解码和编码逻辑。
+		Registry getRegistry()
+	
+		内部方法,获取RequestManagerRetriever
+		RequestManagerRetriever getRequestManagerRetriever()
+
+		配置变化的监听
+		onConfigurationChanged(Configuration newConfig)
+
+		清除内存缓存,调用了clearMemory();
+		onLowMemory()
+
+		根据给定的级别清除确切数量的内存
+		trimMemory(int level)
+		
+		根据给定的级别清除确切数量的内存,调用了trimMemory(level)
+		onTrimMemory(int level)
+
+		填充对象池子
+		preFillBitmapPool(PreFillType.Builder... bitmapAttributeBuilders)
+		MemoryCategory setMemoryCategory(MemoryCategory memoryCategory)
+
+	
+		设置绑定生命周期,让加载图片的请求的跟随生命周期动态管理起来
+		static RequestManager with(Context context)
+		static RequestManager with(Activity activity)
+		static RequestManager with(FragmentActivity activity)
+		static RequestManager with(android.app.Fragment fragment)
+		static RequestManager with(Fragment fragment)
+		static RequestManager with(View view)
+
+	4.2,RequestManager方法:
+		(Glide用来管理和开始请求的类，实现了LifecycleListener接口并重写了如下方法，可以使用Activity和Fragment的生命周期事件机制的开启，停止及重启请求任务。)
+		根据图片来源来加载图片.
+		RequestBuilder<Drawable> load(Object model)
+		RequestBuilder<ResourceType> as(Class<ResourceType> resourceClass)
+
+		加载动态的图片的第一贞,静态展示.
+		RequestBuilder<Bitmap> asBitmap()
+		不同数据类型的转换.
+		RequestBuilder<Drawable> asDrawable()
+		RequestBuilder<File> asFile()
+		RequestBuilder<GifDrawable> asGif()
+
+		清楚加载中的view请求.
+		clear(final Target<?> target)
+		clear(View view)
+		辅助方法加载资源,并且缓存
+		RequestBuilder<File> download(Object model)
+		企图加载资源到缓存中,并从缓存中读取数据.
+		RequestBuilder<File> downloadOnly()
+
+		判断当前的请求是否取消.
+		boolean isPaused()
+
+		取消正在执行的请求，以及释放已完成请求的资源。
+		onDestroy()
+
+		开始图片加载请求，一般在Activity或者Fragment的onStart方法内执行，用来重启失败或暂停的任务
+		onStart()
+
+		暂停图片加载请求，一般在Activity或Fragment的onStop方法内执行，用来暂停任务。
+		onStop()
+
+		取消正在加载的图片请求,但是已经加载完毕的图片不会被清除.
+		pauseRequests()
+		递归执行取消请求的操作
+		pauseRequestsRecursive()
+
+		重新开始加载还没有加载完毕的图片.
+		resumeRequests()
+		递归执行加载图片的请求.
+		resumeRequestsRecursive()
+
+		用给定的RequestOptions替换掉之前设置的RequestOptions.
+		setDefaultRequestOptions(RequestOptions requestOptions)
+	
+	
+	
+
+	4.3,RequestBuilder方法:
+		使用RequestOptions定制选项来加载.
+		RequestBuilder<TranscodeType> apply(RequestOptions requestOptions)
+
+		克隆复制
+		RequestBuilder<TranscodeType> clone()
+
+		?
+		<Y extends Target<TranscodeType>> Y into(@NonNull Y target)
+
+		加载图片失败,成功的监听!
+		RequestBuilder<TranscodeType> listener(RequestListener<TranscodeType> requestListener)
+
+	    Target<TranscodeType> preload()
+
+	    Target<TranscodeType> preload(int width, int height)
+
+	    FutureTarget<TranscodeType> submit()
+
+	    FutureTarget<TranscodeType> submit(int width, int height)
+
+	    RequestBuilder<TranscodeType> thumbnail(float sizeMultiplier)
+
+		用于加载缩略图
+	    RequestBuilder<TranscodeType> thumbnail(RequestBuilder<TranscodeType> thumbnailRequest)
+
+	    RequestBuilder<TranscodeType> transition(
+	      @NonNull TransitionOptions<?, ? super TranscodeType> transitionOptions) 
+
+		根据图片来源来加载图片.
+		RequestBuilder<TranscodeType> load(@Nullable Object model)
+		RequestBuilder<TranscodeType> load(@Nullable String string)
+		RequestBuilder<TranscodeType> load(@Nullable Uri uri)
+		RequestBuilder<TranscodeType> load(@Nullable File file)
+		RequestBuilder<TranscodeType> load(@Nullable Integer resourceId)
+		RequestBuilder<TranscodeType> load(@Nullable byte[] model)
+		
+		获取图片加载到ImageView控件中,通常链式调用中最后调用此方法.
+		Target<TranscodeType> into(ImageView view)
+
+	4.4,RequestOptions
+		(用于自己来定制Glide加载图片的选项,RequestOptions一次设置之后，可以在多处使用)
+
+		重新设置一个RequestOptions,覆盖掉原来的RequestOptions
+		RequestOptions apply(RequestOptions other)
+
+		克隆对象是可变的和不锁定,克隆后的对象没有进行锁定.
+		RequestOptions autoClone()
+
+		将图片形状进行外形转换,具体效果在Transformation类型对象中实现
+		static RequestOptions bitmapTransform(Transformation<Bitmap> transformation)
+
+		是利用图片图填充ImageView设置的大小，如果图片的尺寸小于ImageView的尺寸就会被拉伸填充
+		RequestOptions centerCrop()
+		static RequestOptions centerCropTransform()
+
+		将图片缩放居中显示到ImageView中.
+		RequestOptions centerInside()
+		static RequestOptions centerInsideTransform()
+
+		以图片为中心为圆心将将矩形的图片转换成圆形的图片
+		RequestOptions circleCrop()
+		static RequestOptions circleCropTransform()
+
+		复制一份包含所有已经设置的属性的RequestOptions
+		RequestOptions clone()
+
+		解码,
+		RequestOptions decode(Class<?> resourceClass)
+		static RequestOptions decodeTypeOf(@NonNull Class<?> resourceClass)
+		RequestOptions disallowHardwareConfig()
+		 
+		设置缓存方式或者缓存的策略,
+		ALL,缓存所有版本的图像（默认行为）
+		AUTOMATIC,自动的
+		DATA,仅仅只缓存原来的全分辨率的图像(在解码之前将已检索的数据直接写入磁盘缓存。)
+		NONE,什么都不缓存
+		RESOURCE,仅仅缓存最终的图像，即降低分辨率后的（或者是转换后的）(在解码之后将已检索的数据直接写入磁盘缓存。)
+		RequestOptions diskCacheStrategy(DiskCacheStrategy strategy)
+		static RequestOptions diskCacheStrategyOf(DiskCacheStrategy diskCacheStrategy)
+
+		不要动画,进制返回动画资源
+		RequestOptions dontAnimate()
+
+		不要转换,删除所有应用的的连接转换.
+		RequestOptions dontTransform()
+
+		设置使用bitmap的解码策略.
+		FIT_CENTER
+		CENTER_OUTSIDE
+		AT_LEAST
+		AT_MOST
+		CENTER_INSIDE
+		NONE
+		DEFAULT,CENTER_OUTSIDE
+		RequestOptions downsample(DownsampleStrategy strategy)
+		static RequestOptions downsampleOf(DownsampleStrategy strategy)
+
+		Sets the value for key
+		RequestOptions encodeFormat(Bitmap.CompressFormat format)
+		static RequestOptions encodeFormatOf(Bitmap.CompressFormat format)
+
+		Sets the value for key
+		RequestOptions encodeQuality(int quality)
+		static RequestOptions encodeQualityOf(int quality)
+
+		设置加载图片失败后的占位图.
+		RequestOptions error(int resourceId)
+		RequestOptions error(@Nullable Drawable drawable)
+		static RequestOptions errorOf(@Nullable Drawable errorDrawable)
+		static RequestOptions errorOf(int errorId)
+
+		设置加载图片时候发生空指针,或者传入参数为null的时候,显示的占位图.
+		RequestOptions fallback(Drawable drawable)
+		RequestOptions fallback(int resourceId)
+		
+		缩放图像让图像都测量出来等于或小于 ImageView 的边界范围,该图像将会完全显示，但可能不会填满整个ImageView
+		RequestOptions fitCenter()
+		static RequestOptions fitCenterTransform()
+
+		RequestOptions format(@NonNull DecodeFormat format)
+		static RequestOptions formatOf(@NonNull DecodeFormat format)
+
+		RequestOptions frame(long frameTimeMicros)
+		static RequestOptions frameOf(long frameTimeMicros)
+
+		DiskCacheStrategy getDiskCacheStrategy()
+
+        获取对应的属性字段值
+		int getErrorId()
+		Drawable getErrorPlaceholder()
+		Drawable getFallbackDrawable()
+		int getFallbackId()
+		
+		boolean getOnlyRetrieveFromCache()
+		Options getOptions()
+		getOverrideHeight()
+		int getOverrideWidth()
+		boolean isValidOverride()
+		
+		RequestOptions lock()
+
+		static RequestOptions noAnimation()
+		static RequestOptions noTransformation()
+		RequestOptions onlyRetrieveFromCache(boolean flag)
+		static <T> RequestOptions option(@NonNull Option<T> option, @NonNull T value)
+		RequestOptions optionalCenterCrop()
+		RequestOptions optionalCenterInside()
+		RequestOptions optionalCircleCrop()
+		RequestOptions optionalFitCenter()
+		RequestOptions optionalTransform(Class<T> resourceClass,
+      Transformation<T> transformation)
+
+      	RequestOptions optionalTransform(Transformation<Bitmap> transformation)
+      	RequestOptions override(int size)
+      	修改加载成功后网络图片的宽度和高度,参数1:修改后的宽度,参数2:修改后的高度.
+      	RequestOptions override(int width, int height)
+      	static RequestOptions overrideOf(int size)
+      	static RequestOptions overrideOf(int width, int height)
+
+		设置加载过程中默认占位图.
+      	RequestOptions placeholder(@Nullable Drawable drawable)
+      	RequestOptions placeholder(int resourceId)
+      	static RequestOptions placeholderOf(@Nullable Drawable placeholder)
+      	static RequestOptions placeholderOf(int placeholderId)
+      	
+		
+		设置加载图片优先级,IMMEDIATE > HIGH > NORMAL > LOW
+		RequestOptions priority(Priority priority)
+		static RequestOptions priorityOf(@NonNull Priority priority)
+
+		RequestOptions set(@NonNull Option<T> option, @NonNull T value)
+		RequestOptions signature(@NonNull Key signature)
+		static RequestOptions signatureOf(@NonNull Key signature)
+		RequestOptions sizeMultiplier(float sizeMultiplier)
+		static RequestOptions sizeMultiplierOf(float sizeMultiplier)
+
+		设置是否进行内存缓存,true:不缓存,反之缓存
+		RequestOptions skipMemoryCache(boolean skip)
+		static RequestOptions skipMemoryCacheOf(boolean skipMemoryCache)
+
+		RequestOptions theme(Resources.Theme theme)
+		RequestOptions timeout(int timeoutMs)
+		static RequestOptions timeoutOf(int timeout)
+
+		RequestOptions transform(
+      Class<T> resourceClass, Transformation<T> transformation) {
+    if (isAutoCloneEnabled)
+
+    RequestOptions transform(@NonNull Transformation<Bitmap> transformation)
+    RequestOptions transforms(@NonNull Transformation<Bitmap>... transformations)
+    RequestOptions useUnlimitedSourceGeneratorsPool(boolean flag)
+
+5,功能使用案例
+	1,加载网络图片一般用法
+		 //默认使用原图加载,内存缓存,磁盘缓存,
+        Glide.with(this).load(UC.IMAGE_URL_0).into(iv);
+	2,加载网络图片过程中的监听
+	3,加载图片ID占位图
+	4,加载图片过程中遇到传入null的监听
+	5,调整图片大小
+		单位是像素，裁剪你的图片大小。其实Glide已经会自动根据你mageView裁剪照片来放在缓存中了。
+	6,图片的缩放处理.
+		使用centerCrop是利用图片图填充ImageView设置的大小，如果ImageView的Height是match_parent则图片就会被拉伸填充
+		使用fitCenter即缩放图像让图像都测量出来等于或小于 ImageView 的边界范围,该图像将会完全显示，但可能不会填满整个ImageView
+		将图片居中缩放展示到ImageView当中.
+	
+6,Glide图片缓存处理
+	用过手机的都知道，当划上划下一个ListView的时候，第二次都比第一次快，就是因为为GlideView对资源进行了缓存，而且封装的很好，甚至不需要自己去设定缓存大小，
+	Glide会智能地自己给我们根据设备设置缓存大小。
+	要想性能好，怎可以不用缓存。缓存就是为了减少或者杜绝多的网络请求。为了避免缓存，Glide用了内存缓存和‘外存缓存机制’,并且 提供了相应的方法，完全封装，不需要处理细节。
+	Glide会自动缓存到内存，除非调用.
+	skipMemoryCache(true)。尽管调用了这个，Glide还是会缓存到外存，还有一种情形，就是有一张图片，但是这张图变化非常快,
+	这个时候可能并不想缓存到外存中，就使用.diskCacheStrategy( DiskCacheStrategy.NONE )。
+	如果你两种都不需要，可以两个方法组合着一起使用。
+7,Glide加载自定义的形状的图片.
+    通过  RequestOptions transform(@NonNull Transformation<Bitmap> transformation)方法来转换图形.
+    BitmapTransformation
+        CenterInside
+        RoundedCorners
+        FitCenter
+        CircleCrop
+        CenterCrop
+    也可以通过开源库,接入各种其他类型的形状转换!
+
+    TransitionOptions
+    crossFade()
+    animate()
+
+    		GenericTransitionOptions
+    		DrawableTransitionOptions
+    		BitmapTransitionOptions
+
+    Transitions被要求用在 RequestBuilder
+    实例:
+    Glide.with(fragment)
+        .load(url)
+        .transition(withCrossFade(R.anim.fade_in, 300));
+
+    Glide.with(this)
+            .load(ImageConfig.URL_WEBP)
+            .apply(options)
+            .transition(new DrawableTransitionOptions().crossFade(2000))
+            .thumbnail(Glide.with(this)
+                    .load(ImageConfig.URL_JPEG))
+            .into(iv_test1);
+
+
+
+
+
+
+
+
